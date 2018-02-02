@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Text;
 using System.Net.WebSockets;
 using PureWebSockets;
@@ -9,38 +10,32 @@ namespace BeyonceCapture
     public class MarketSocket
     {
         private PureWebSocket _ws;
-        public readonly string _marketDelta;
-
         public readonly List<string> _marketDeltas;
-
-        public MarketSocket(string delta)
-        {
-            _marketDelta = delta;
-            _ws = new PureWebSocket($"wss://stream.binance.com:9443/ws/{delta.ToLower()}@depth", new ReconnectStrategy(10000, 60000));
-            _ws.OnStateChanged += Ws_OnStateChanged;
-            _ws.OnMessage += Ws_OnMessage;
-            _ws.OnClosed += Ws_OnClosed;
-            _ws.OnSendFailed += _ws_OnSendFailed;
-        }
+        private ConcurrentDictionary<string, int> UpdateNonces;
+                
 
         public MarketSocket(List<string> deltas)
         {
             _marketDeltas = deltas;
+            UpdateNonces = new ConcurrentDictionary<string, int>();
+
             var uri = $"wss://stream.binance.com:9443/stream?streams=";
             foreach (var delta in deltas)
-                uri += $"{delta.ToLower()}@depth/";
+            {
+                uri += $"{delta.ToLower()}@depth/{delta.ToLower()}@trade/";
+            }
 
             _ws = new PureWebSocket(uri, new ReconnectStrategy(10000, 60000));
             _ws.OnStateChanged += Ws_OnStateChanged;
             _ws.OnMessage += Ws_OnMessage;
             _ws.OnClosed += Ws_OnClosed;
             _ws.OnSendFailed += _ws_OnSendFailed;
-            _ws.Connect();
         }
 
         public bool Connect()
         {
             return _ws.Connect();
+
         }
 
 

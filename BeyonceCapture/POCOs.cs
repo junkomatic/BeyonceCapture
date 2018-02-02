@@ -4,7 +4,17 @@ using System.Text;
 
 namespace BeyonceCapture
 {
+    public class MarketDepthMsg
+    {
 
+    }
+
+    public class MarketDepthSnapshot
+    {
+        public int lastUpdateId { get; set; }
+        public List<List<object>> bids { get; set; }
+        public List<List<object>> asks { get; set; }
+    }
 
 
 

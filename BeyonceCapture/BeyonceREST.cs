@@ -18,6 +18,20 @@ namespace BeyonceCapture
             BaseAddress = new Uri("https://api.binance.com/"),
         };
 
+        public static async Task<MarketDepthSnapshot> GetDepthSnapshot(string delta)
+        {
+            var uri = $"/api/v1/depth?symbol={delta.ToUpper()}&limit=1000";
+         
+            HttpResponseMessage response = await client.GetAsync(uri);
+            if (response.IsSuccessStatusCode)
+            {
+                var stream = await response.Content.ReadAsStreamAsync();
+                return await JsonSerializer.DeserializeAsync<MarketDepthSnapshot>(stream);
+            }
+            else
+                return null;
+        }
+
         public static async Task<ExchangeInfo> GetMarketSummary()
         {
             var uri = "/api/v1/exchangeInfo";
@@ -25,7 +39,6 @@ namespace BeyonceCapture
             HttpResponseMessage response = await client.GetAsync(uri);
             if (response.IsSuccessStatusCode)
             {
-
                 var stream = await response.Content.ReadAsStreamAsync();
                 return await JsonSerializer.DeserializeAsync<ExchangeInfo>(stream);
             }

@@ -34,39 +34,14 @@ namespace BeyonceCapture
             //IMongoCollection<BsonDocument> BTCdeltasColl = db.GetCollection<BsonDocument>("BTCdeltas");
             //IMongoCollection<BsonDocument> ETHdeltasColl = db.GetCollection<BsonDocument>("BTCdeltas");
             //IMongoCollection<BsonDocument> BNBdeltasColl = db.GetCollection<BsonDocument>("BTCdeltas");
-
-
+            
+            
             var infos = await BeyonceREST.Get24hInfo();
-          
+
             var BTCdeltas = from info in infos
                             where info.symbol.Substring(info.symbol.Length - 3, 3) == "BTC"
-                            orderby info.quoteVolume descending                     
+                            orderby info.quoteVolume descending
                             select info.symbol;
-
-
-            var sockets = new List<MarketSocket>();
-            var socketCount = 0;
-            var pages = Math.Ceiling(BTCdeltas.Count() / 5M);
-            for (var page = 0; page <= pages; page++)
-            {
-                var subDeltas = BTCdeltas.Skip(5 * page).Take(5);
-                //foreach (var delta in subDeltas)
-                //{
-                //    var deltaSocket = new MarketSocket(delta);
-                //    deltaSocket.Connect();
-                //    sockets.Add(deltaSocket);
-                //}
-
-                var socket = new MarketSocket(subDeltas.ToList());
-                sockets.Add(socket);
-                socketCount += subDeltas.Count();
-
-
-
-                Console.WriteLine($"{page}/{pages}   ... socketCount: {sockets.Count}");
-                Console.ReadLine();
-            }
-
 
             //var ETHdeltas = from info in infos
             //                where info.symbol.Substring(info.symbol.Length - 3, 3) == "ETH"
@@ -83,19 +58,16 @@ namespace BeyonceCapture
             //                 orderby info.quoteVolume
             //                 select info.symbol;
 
-            //Console.WriteLine($"Total Count: {infos.Count}");
-            //Console.WriteLine($"BTC deltas: {BTCdeltas.Count()}");
-            //Console.WriteLine($"ETH deltas: {ETHdeltas.Count()}");
-            //Console.WriteLine($"BNB deltas: {BNBdeltas.Count()}");
-            //Console.WriteLine($"USDT deltas: {USDTdeltas.Count()}");
+
+            MarketSocket socket = new MarketSocket(BTCdeltas.Take(20).ToList());
+            socket.Connect();
+            MarketSocket socket2 = new MarketSocket(BTCdeltas.Skip(20).Take(20).ToList());
+            socket2.Connect();
+            MarketSocket socket3 = new MarketSocket(BTCdeltas.Skip(40).Take(20).ToList());
+            socket3.Connect();
 
 
-
-            MarketSocket ETHsocket = new MarketSocket("ethbtc");
-            ETHsocket.Connect();
-
-
-
+            Console.ReadLine();
 
 
         }
