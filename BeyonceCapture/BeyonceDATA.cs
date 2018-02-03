@@ -28,16 +28,10 @@ namespace BeyonceCapture
 
         public static async void StartDataUpdates()
         {
-            var exists = await CollectionExistsAsync("BTCmarketsTEST");
-            if (!exists)
-            {
-                var options = new CreateCollectionOptions() { StorageEngine = BsonDocument.Parse("{wiredTiger:{configString:'block_compressor=zlib'}}") };
-                db.CreateCollection("BTCdeltasTEST", options);
-            }
-            BTCpairsCollection = db.GetCollection<BsonDocument>("BTCmarkets");
-            ETHpairsCollection = db.GetCollection<BsonDocument>("ETHmarkets");
-            BNBpairsCollection = db.GetCollection<BsonDocument>("BNBmarkets");
-            USDTpairsCollection = db.GetCollection<BsonDocument>("USDTmarkets");
+            BTCpairsCollection = await CheckCreateGetCollection("BTCmarketsTEST");
+            ETHpairsCollection = await CheckCreateGetCollection("ETHmarketsTEST");
+            BNBpairsCollection = await CheckCreateGetCollection("BNBmarketsTEST");
+            USDTpairsCollection = await CheckCreateGetCollection("USDTmarketsTEST");
 
             BTCdocuments = new List<BsonDocument>();
             ETHdocuments = new List<BsonDocument>();
@@ -53,8 +47,7 @@ namespace BeyonceCapture
         }
 
         public static void ProcessQueue()
-        {           
-                        
+        {            
             while (true)
             {
                 if (UpdateQueue.IsEmpty)
@@ -72,67 +65,121 @@ namespace BeyonceCapture
                     tryDQ = UpdateQueue.TryDequeue(out msg);
                     if (tryDQ)
                     {
-                        //TODO: SORT MESSAGES, 
-                        //      ID = TIMESTAMP
-                        //      TRADE AND DEPTH SCHEMA?
-                       
+                        var msgSplit = msg.Split('@');
 
-                        var bsonMsg = BsonSerializer.Deserialize<BsonDocument>(msg);
-                        //BTCdocuments.Add(bsonMsg);
+                        var msgType = msgSplit[1].Substring(0, 5);
+                        var quoteSymbol = msgSplit[0].Substring(msgSplit[0].Length - 3, 3);
 
-
+                        if (msgType == "depth")                        
+                            CreateAddDepthBSON(quoteSymbol, JsonSerializer.Deserialize<MarketDepthMsg>(msg));                        
+                        else if (msgType == "trade")
+                            CreateAddTradeBSON(quoteSymbol, JsonSerializer.Deserialize<MarketTradeMsg>(msg));                        
                     }
                 } while (!tryDQ);
 
 
-                if (BTCdocuments.Count > 80 || ETHdocuments.Count > 80 || BNBdocuments.Count > 80 || USDTdocuments.Count > 80)
-                {
-                    SendAllData();
-                }
+                SendAllData(80);
 
+            }
+        }
+        
+
+        private static void CreateAddDepthBSON(string quoteSymb, MarketDepthMsg depthJSON)
+        {
+            var msgBSON = new BsonDocument()
+            {
+                //TODO: ID = TIMESTAMP
+                //      TRADE AND DEPTH SCHEMA? 
+
+            };
+
+            AddBSONdoc(quoteSymb, msgBSON);
+        }
+
+        private static void CreateAddTradeBSON(string quoteSymb, MarketTradeMsg tradeJSON)
+        {
+            var msgBSON = new BsonDocument()
+            {
+                //TODO: ID = TIMESTAMP
+                //      TRADE AND DEPTH SCHEMA? 
+
+            };
+
+            AddBSONdoc(quoteSymb, msgBSON);
+        }
+        
+
+        public static void CreateAddSnapshotDoc()
+        {
+            //TODO: GET QUOTE SYMBOL, CREATE DOC
+            var quoteSymbol = "";
+            var BSONdoc = new BsonDocument();
+
+
+
+
+            AddBSONdoc(quoteSymbol, BSONdoc);
+        }
+
+
+        private static void AddBSONdoc(string symbol, BsonDocument msgBSON)
+        {
+            switch (symbol)
+            {
+                case "btc":
+                    BTCdocuments.Add(msgBSON);
+                    break;
+                case "eth":
+                    ETHdocuments.Add(msgBSON);
+                    break;
+                case "bnb":
+                    BNBdocuments.Add(msgBSON);
+                    break;
+                case "sdt":
+                    USDTdocuments.Add(msgBSON);
+                    break;
             }
         }
 
 
-        private static void SendAllData()
+        private static void SendAllData(int docCount = 0)
         {
-            SendBTCdata();
-            SendETHdata();
-            SendBNBdata();
-            SendUSDTdata();
-        }
-
-
-        private static void SendBTCdata()
+            SendBTCdata(docCount);
+            SendETHdata(docCount);
+            SendBNBdata(docCount);
+            SendUSDTdata(docCount);
+        }  
+        
+        private static void SendBTCdata(int docCount = 0)
         {
-            if (BTCdocuments.Count > 0)
+            if (BTCdocuments.Count > docCount)
             {
                 BTCpairsCollection.InsertManyAsync(BTCdocuments, new InsertManyOptions() { IsOrdered = false }).Wait();
                 Console.WriteLine($"BTC docs: {BTCdocuments.Count}");
                 BTCdocuments = new List<BsonDocument>();
             }
         }
-        private static void SendETHdata()
+        private static void SendETHdata(int docCount = 0)
         {
-            if (ETHdocuments.Count > 0)
+            if (ETHdocuments.Count > docCount)
             {
                 ETHpairsCollection.InsertManyAsync(ETHdocuments, new InsertManyOptions() { IsOrdered = false }).Wait();
                 Console.WriteLine($"ETH docs: {ETHdocuments.Count}");
                 ETHdocuments = new List<BsonDocument>();
             }
         }
-        private static void SendBNBdata()
+        private static void SendBNBdata(int docCount = 0)
         {
-            if (BNBdocuments.Count > 0)
+            if (BNBdocuments.Count > docCount)
             {
                 BNBpairsCollection.InsertManyAsync(BNBdocuments, new InsertManyOptions() { IsOrdered = false }).Wait();
                 Console.WriteLine($"BNB docs: {BNBdocuments.Count}");
                 BNBdocuments = new List<BsonDocument>();
             }
         }
-        private static void SendUSDTdata()
+        private static void SendUSDTdata(int docCount = 0)
         {
-            if (USDTdocuments.Count > 0)
+            if (USDTdocuments.Count > docCount)
             {
                 USDTpairsCollection.InsertManyAsync(USDTdocuments, new InsertManyOptions() { IsOrdered = false }).Wait();
                 Console.WriteLine($"USDT docs: {USDTdocuments.Count}");
@@ -141,14 +188,23 @@ namespace BeyonceCapture
         }
 
 
-        private static async Task<bool> CollectionExistsAsync(string collectionName)
+        private static async Task<IMongoCollection<BsonDocument>> CheckCreateGetCollection(string quoteSymbol)
         {
-            var filter = new BsonDocument("name", collectionName);
+            var symbol = quoteSymbol.ToUpper();
+            var filter = new BsonDocument("name", $"{symbol}markets");
             //filter by collection name
             var collections = await db.ListCollectionsAsync(new ListCollectionsOptions { Filter = filter });
-            //check for existence
-            return await collections.AnyAsync();
+            //check for existence, create if !exist
+            if (!await collections.AnyAsync())
+            {
+                var options = new CreateCollectionOptions() { StorageEngine = BsonDocument.Parse("{wiredTiger:{configString:'block_compressor=zlib'}}") };
+                db.CreateCollection($"{symbol}markets", options);
+            }
+
+            return db.GetCollection<BsonDocument>($"{symbol}markets");            
         }
+
+
 
     }
 
