@@ -69,47 +69,48 @@ namespace BeyonceCapture
 
                         var msgType = msgSplit[1].Substring(0, 5);
                         var quoteSymbol = msgSplit[0].Substring(msgSplit[0].Length - 3, 3);
+                        var BSONdocument = new BsonDocument();
 
                         if (msgType == "depth")                        
-                            CreateAddDepthBSON(quoteSymbol, JsonSerializer.Deserialize<MarketDepthMsg>(msg));                        
+                            BSONdocument = CreateAddDepthBSON(JsonSerializer.Deserialize<MarketDepthMsg>(msg));                        
                         else if (msgType == "trade")
-                            CreateAddTradeBSON(quoteSymbol, JsonSerializer.Deserialize<MarketTradeMsg>(msg));                        
+                            BSONdocument = CreateAddTradeBSON(JsonSerializer.Deserialize<MarketTradeMsg>(msg));
+                        
+                        AddBSONdoc(quoteSymbol, BSONdocument);
                     }
                 } while (!tryDQ);
-
-
+                
                 SendAllData(80);
-
             }
         }
         
 
-        private static void CreateAddDepthBSON(string quoteSymb, MarketDepthMsg depthJSON)
+        private static BsonDocument CreateAddDepthBSON(MarketDepthMsg depthJSON)
         {
-            var msgBSON = new BsonDocument()
+            return new BsonDocument()
             {
                 //TODO: ID = TIMESTAMP
-                //      TRADE AND DEPTH SCHEMA? 
+                //      TRADE AND DEPTH AND SNAP SCHEMA
+
 
             };
 
-            AddBSONdoc(quoteSymb, msgBSON);
         }
 
-        private static void CreateAddTradeBSON(string quoteSymb, MarketTradeMsg tradeJSON)
+        private static BsonDocument CreateAddTradeBSON(MarketTradeMsg tradeJSON)
         {
-            var msgBSON = new BsonDocument()
+            return new BsonDocument()
             {
                 //TODO: ID = TIMESTAMP
-                //      TRADE AND DEPTH SCHEMA? 
+                //      TRADE AND DEPTH AND SNAP SCHEMA
+
 
             };
-
-            AddBSONdoc(quoteSymb, msgBSON);
+            
         }
         
 
-        public static void CreateAddSnapshotDoc()
+        public static void CreateAddSnapshotDoc(object TODO)
         {
             //TODO: GET QUOTE SYMBOL, CREATE DOC
             var quoteSymbol = "";
