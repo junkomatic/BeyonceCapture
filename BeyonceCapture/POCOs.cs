@@ -4,8 +4,48 @@ using System.Text;
 
 namespace BeyonceCapture
 {
+
+    public class streamSubjectLine
+    {
+        public string stream { get; set; }
+    }
+
+   public class DepthMsgData
+    {
+        public string e { get; set; }
+        public long E { get; set; }
+        public string s { get; set; }
+        public int U { get; set; }
+        public int u { get; set; }
+        public List<object> b { get; set; }
+        public List<List<object>> a { get; set; }
+    }
+    
     public class MarketDepthMsg
     {
+        public string stream { get; set; }
+        public DepthMsgData data { get; set; }
+    }
+
+    public class TradeMsgData
+    {
+        public string e { get; set; }
+        public long E { get; set; }
+        public string s { get; set; }
+        public int t { get; set; }
+        public string p { get; set; }
+        public string q { get; set; }
+        public int b { get; set; }
+        public int a { get; set; }
+        public long T { get; set; }
+        public bool m { get; set; }
+        public bool M { get; set; }
+    }
+
+    public class MarketTradeMsg
+    {
+        public string stream { get; set; }
+        public TradeMsgData data { get; set; }
 
     }
 

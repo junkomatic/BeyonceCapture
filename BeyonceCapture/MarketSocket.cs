@@ -63,11 +63,11 @@ namespace BeyonceCapture
 
         private void Ws_OnMessage(string message)
         {
-            Console.WriteLine(message);
-            //Console.ForegroundColor = ConsoleColor.Green;
-            //Console.WriteLine($"{DateTime.Now} New message: {message}");
-            //Console.ResetColor();
-            //Console.WriteLine("");
+            BeyonceDATA.UpdateQueue.Enqueue(message);
+
+            //var subject = (Utf8Json.JsonSerializer.Deserialize<streamSubjectLine>(message)).stream.Split('@')[1];
+            //Console.WriteLine(subject);
+            
         }
 
         private void Ws_OnStateChanged(WebSocketState newState, WebSocketState prevState)

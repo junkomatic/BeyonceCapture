@@ -28,14 +28,8 @@ namespace BeyonceCapture
 
         static async Task MainAsync()
         {
-            //var connectionString = "mongodb://localhost:27017";
-            //var client = new MongoClient(connectionString);
-            //IMongoDatabase db = client.GetDatabase("marketData");
-            //IMongoCollection<BsonDocument> BTCdeltasColl = db.GetCollection<BsonDocument>("BTCdeltas");
-            //IMongoCollection<BsonDocument> ETHdeltasColl = db.GetCollection<BsonDocument>("BTCdeltas");
-            //IMongoCollection<BsonDocument> BNBdeltasColl = db.GetCollection<BsonDocument>("BTCdeltas");
-            
-            
+           
+
             var infos = await BeyonceREST.Get24hInfo();
 
             var BTCdeltas = from info in infos
@@ -43,28 +37,51 @@ namespace BeyonceCapture
                             orderby info.quoteVolume descending
                             select info.symbol;
 
-            //var ETHdeltas = from info in infos
-            //                where info.symbol.Substring(info.symbol.Length - 3, 3) == "ETH"
-            //                orderby info.quoteVolume
-            //                select info.symbol;
+            var ETHdeltas = from info in infos
+                            where info.symbol.Substring(info.symbol.Length - 3, 3) == "ETH"
+                            orderby info.quoteVolume descending
+                            select info.symbol;
 
             //var BNBdeltas = from info in infos
             //                where info.symbol.Substring(info.symbol.Length - 3, 3) == "BNB"
-            //                orderby info.quoteVolume
+            //                orderby info.quoteVolume descending
             //                select info.symbol;
 
             //var USDTdeltas = from info in infos
             //                 where info.symbol.Substring(info.symbol.Length - 4, 4) == "USDT"
-            //                 orderby info.quoteVolume
+            //                 orderby info.quoteVolume descending
             //                 select info.symbol;
 
 
+            BeyonceDATA.StartDataUpdates();
             MarketSocket socket = new MarketSocket(BTCdeltas.Take(20).ToList());
             socket.Connect();
             MarketSocket socket2 = new MarketSocket(BTCdeltas.Skip(20).Take(20).ToList());
             socket2.Connect();
             MarketSocket socket3 = new MarketSocket(BTCdeltas.Skip(40).Take(20).ToList());
             socket3.Connect();
+            MarketSocket socket4 = new MarketSocket(BTCdeltas.Skip(60).Take(20).ToList());
+            socket4.Connect();
+            MarketSocket socket5 = new MarketSocket(BTCdeltas.Skip(80).Take(20).ToList());
+            socket5.Connect();
+
+
+            MarketSocket socketE = new MarketSocket(ETHdeltas.Take(20).ToList());
+            socketE.Connect();
+            MarketSocket socket2E = new MarketSocket(ETHdeltas.Skip(20).Take(20).ToList());
+            socket2E.Connect();
+            MarketSocket socket3E = new MarketSocket(ETHdeltas.Skip(40).Take(20).ToList());
+            socket3E.Connect();
+            MarketSocket socket4E = new MarketSocket(ETHdeltas.Skip(60).Take(20).ToList());
+            socket4E.Connect();
+
+            var R = ETHdeltas.Skip(80).Take(20).ToList();
+
+            if (R.Count > 0)
+            {
+                MarketSocket socket5E = new MarketSocket(R);
+                socket5E.Connect();
+            }
 
 
             Console.ReadLine();
