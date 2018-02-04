@@ -82,47 +82,20 @@ namespace BeyonceCapture
             }
         }
         
-
-
+        
 
         private static UpdateOneModel<BsonDocument> CreateDepthUpsert(MarketDepthJSON depthJSON, string delta)
         {
-            //FORM ASKS ARRAY
-            var ASKSarray = new BsonArray();
-            var index = 0;
-            foreach (List<object> ask in depthJSON.data.a)
-            {
-                var ASKdoc = new BsonDocument
-                {
-                    { "rate", BsonValue.Create(depthJSON.data.a[index][0]) },
-                    { "qty", BsonValue.Create(depthJSON.data.a[index][1]) }
-                };
-
-                ASKSarray.Add(ASKdoc);
-                index++;
-            }
-
-            //FORM BIDS ARRAY
-            var BIDSarray = new BsonArray();
-            index = 0;
-            foreach (List<object> bid in depthJSON.data.b)
-            {
-                var BIDdoc = new BsonDocument
-                {
-                    { "rate", BsonValue.Create(depthJSON.data.b[index][0]) },
-                    { "qty", BsonValue.Create(depthJSON.data.b[index][1]) }
-                };
-
-                BIDSarray.Add(BIDdoc);
-                index++;
-            }
+            //FORM UPDATE ARRAYS
+            var ASKSarray = CreateOrdersUpdates(depthJSON.data.a);            
+            var BIDSarray = CreateOrdersUpdates(depthJSON.data.b);
 
             //DEFINE DOCUMENT FOR UPSERT
             var BSONdoc = new BsonDocument()
             {
                 {"time", BsonValue.Create(depthJSON.data.E)},
                 {"pair", new BsonString(delta)},
-                { "depthData", new BsonDocument {
+                { "depth", new BsonDocument {
                     {"U", depthJSON.data.U},
                     {"u",  depthJSON.data.u},
                     { "asks", ASKSarray },
@@ -136,6 +109,23 @@ namespace BeyonceCapture
 
             return new UpdateOneModel<BsonDocument>(filter, BSONdoc) { IsUpsert = true };
         }
+
+        private static BsonArray CreateOrdersUpdates(List<List<object>> updates)
+        {
+            var array = new BsonArray();
+            foreach (List<object> update in updates)
+            {
+                var doc = new BsonDocument
+                {
+                    { "rate", BsonValue.Create(update[0]) },
+                    { "qty", BsonValue.Create(update[1]) }
+                };
+
+                array.Add(doc);
+            }
+            return array;
+        }
+
 
         private static UpdateOneModel<BsonDocument> CreateTradeUpsert(MarketTradeJSON tradeJSON, string delta)
         {
