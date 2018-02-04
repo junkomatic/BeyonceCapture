@@ -66,7 +66,6 @@ namespace BeyonceCapture
                     if (tryDQ)
                     {
                         var msgSplit = msg.Split('@');
-
                         var msgType = msgSplit[1].Substring(0, 5);
                         var quoteSymbol = msgSplit[0].Substring(msgSplit[0].Length - 3, 3);
                         
@@ -86,6 +85,9 @@ namespace BeyonceCapture
 
         private static UpdateOneModel<BsonDocument> CreateDepthUpsert(MarketDepthJSON depthJSON, string delta)
         {
+            //TODO: NONCE VALIDATION => IF NONCE OUTOF ORDER, RESNAP BOOK
+
+
             //FORM UPDATE ARRAYS
             var ASKSarray = CreateOrdersUpdates(depthJSON.data.a);            
             var BIDSarray = CreateOrdersUpdates(depthJSON.data.b);
@@ -133,7 +135,7 @@ namespace BeyonceCapture
             {
                 //TODO: CREATE DOC DEF
                 //THERE MAY BE MANY TRADE EVENTS PER TIMESTAMP
-
+                //USE '.Push' TO EXTEND ARRAY
 
 
 
