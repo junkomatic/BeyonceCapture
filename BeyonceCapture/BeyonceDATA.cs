@@ -95,7 +95,7 @@ namespace BeyonceCapture
                 var ASKdoc = new BsonDocument
                 {
                     { "rate", BsonValue.Create(depthJSON.data.a[index][0]) },
-                    { "qty", BsonValue.Create(depthJSON.data.a[index][0]) }
+                    { "qty", BsonValue.Create(depthJSON.data.a[index][1]) }
                 };
 
                 ASKSarray.Add(ASKdoc);
@@ -110,7 +110,7 @@ namespace BeyonceCapture
                 var BIDdoc = new BsonDocument
                 {
                     { "rate", BsonValue.Create(depthJSON.data.b[index][0]) },
-                    { "qty", BsonValue.Create(depthJSON.data.b[index][0]) }
+                    { "qty", BsonValue.Create(depthJSON.data.b[index][1]) }
                 };
 
                 BIDSarray.Add(BIDdoc);
