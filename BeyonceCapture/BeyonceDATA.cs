@@ -138,13 +138,13 @@ namespace BeyonceCapture
                 & Builders<BsonDocument>.Filter.ElemMatch(x => x.Elements, x => x.Name == "TODO__UPDATE_ID!!");
             
             var upsert = new UpdateOneModel<BsonDocument>(filter, BSONdoc) { IsUpsert = true };
-            AddDataUpsert(quoteSymbol, upsert);
+            AddDataUpsert(delta.Substring(delta.Length - 3, 3), upsert);
         }
 
 
         private static void AddDataUpsert(string symbol, UpdateOneModel<BsonDocument> msgBSON)
         {
-            switch (symbol)
+            switch (symbol.ToLower())
             {
                 case "btc":
                     BTCupserts.Add(msgBSON);
