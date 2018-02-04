@@ -69,11 +69,11 @@ namespace BeyonceCapture
 
                         var msgType = msgSplit[1].Substring(0, 5);
                         var quoteSymbol = msgSplit[0].Substring(msgSplit[0].Length - 3, 3);
-
+                        
                         if (msgType == "depth")
-                            AddDataUpsert(quoteSymbol, CreateDepthUpsert(JsonSerializer.Deserialize<MarketDepthMsg>(msg)));                        
+                            AddDataUpsert(quoteSymbol, CreateDepthUpsert(JsonSerializer.Deserialize<MarketDepthMsg>(msg), msgSplit[0]));                        
                         else if (msgType == "trade")
-                            AddDataUpsert(quoteSymbol, CreateTradeUpsert(JsonSerializer.Deserialize<MarketTradeMsg>(msg)));
+                            AddDataUpsert(quoteSymbol, CreateTradeUpsert(JsonSerializer.Deserialize<MarketTradeMsg>(msg), msgSplit[0]));
                         
                     }
                 } while (!tryDQ);
@@ -85,11 +85,11 @@ namespace BeyonceCapture
 
 
 
-        private static UpdateOneModel<BsonDocument> CreateDepthUpsert(MarketDepthMsg depthJSON)
+        private static UpdateOneModel<BsonDocument> CreateDepthUpsert(MarketDepthMsg depthJSON, string delta)
         {
             var BSONdoc = new BsonDocument()
             {
-                //TODO: GET QUOTE SYMBOL, CREATE DOC DEF
+                //TODO:CREATE DOC DEF
 
 
 
@@ -103,7 +103,7 @@ namespace BeyonceCapture
             return new UpdateOneModel<BsonDocument>(filter, BSONdoc) { IsUpsert = true };
         }
 
-        private static UpdateOneModel<BsonDocument> CreateTradeUpsert(MarketTradeMsg tradeJSON)
+        private static UpdateOneModel<BsonDocument> CreateTradeUpsert(MarketTradeMsg tradeJSON, string delta)
         {
             var BSONdoc = new BsonDocument()
             {
@@ -122,21 +122,20 @@ namespace BeyonceCapture
         }
         
 
-        public static void CreateAddSnapshotDoc(object TODO)
+        public static void CreateAddSnapshotDoc(object TODO, string quoteSymbol)
         {
-            var quoteSymbol = "TODO";
             var BSONdoc = new BsonDocument()
             {
                 //TODO: CREATE DOC DEF
-
+                //FILTER WILL USE LAST-UPDATE-ID: u/U
 
 
 
 
             };
             
-            var filter = Builders<BsonDocument>.Filter.ElemMatch(x => x.Elements, x => x.Name == "time")
-                & Builders<BsonDocument>.Filter.ElemMatch(x => x.Elements, x => x.Name == "pair");
+            var filter = Builders<BsonDocument>.Filter.ElemMatch(x => x.Elements, x => x.Name == "pair")
+                & Builders<BsonDocument>.Filter.ElemMatch(x => x.Elements, x => x.Name == "TODO__UPDATE_ID!!");
             
             var upsert = new UpdateOneModel<BsonDocument>(filter, BSONdoc) { IsUpsert = true };
             AddDataUpsert(quoteSymbol, upsert);
