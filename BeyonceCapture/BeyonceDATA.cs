@@ -122,7 +122,7 @@ namespace BeyonceCapture
         }
         
 
-        public static void CreateAddSnapshotDoc(object TODO, string quoteSymbol)
+        public static void CreateAddSnapshotDoc(object TODO, string delta)
         {
             var BSONdoc = new BsonDocument()
             {
