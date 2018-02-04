@@ -122,15 +122,12 @@ namespace BeyonceCapture
             {
                 {"time", BsonValue.Create(depthJSON.data.E)},
                 {"pair", new BsonString(delta)},
-                { "datas", new BsonDocument {
-                    { "depthData", new BsonDocument {
-                        {"U", depthJSON.data.U},
-                        {"u",  depthJSON.data.u},
-                        { "asks", ASKSarray },
-                        { "bids", BIDSarray }                        
-                    } }
+                { "depthData", new BsonDocument {
+                    {"U", depthJSON.data.U},
+                    {"u",  depthJSON.data.u},
+                    { "asks", ASKSarray },
+                    { "bids", BIDSarray }                        
                 } }
-
             };
             
             //FILTER UPSERT TO MATCH time AND pair FOR ROOT DOCUMENT
@@ -166,7 +163,7 @@ namespace BeyonceCapture
             var BSONdoc = new BsonDocument()
             {
                 //TODO: CREATE DOC DEF
-                //FILTER WILL USE LAST-UPDATE-ID: u/U
+                //FILTER WILL USE LAST-UPDATE-ID: U/u
 
 
 
