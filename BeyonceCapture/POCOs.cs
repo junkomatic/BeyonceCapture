@@ -17,11 +17,11 @@ namespace BeyonceCapture
         public string s { get; set; }
         public int U { get; set; }
         public int u { get; set; }
-        public List<object> b { get; set; }
+        public List<List<object>> b { get; set; }
         public List<List<object>> a { get; set; }
     }
     
-    public class MarketDepthMsg
+    public class MarketDepthJSON
     {
         public string stream { get; set; }
         public DepthMsgData data { get; set; }
@@ -42,7 +42,7 @@ namespace BeyonceCapture
         public bool M { get; set; }
     }
 
-    public class MarketTradeMsg
+    public class MarketTradeJSON
     {
         public string stream { get; set; }
         public TradeMsgData data { get; set; }

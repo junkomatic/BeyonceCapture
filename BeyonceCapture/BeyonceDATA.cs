@@ -71,9 +71,9 @@ namespace BeyonceCapture
                         var quoteSymbol = msgSplit[0].Substring(msgSplit[0].Length - 3, 3);
                         
                         if (msgType == "depth")
-                            AddDataUpsert(quoteSymbol, CreateDepthUpsert(JsonSerializer.Deserialize<MarketDepthMsg>(msg), msgSplit[0]));                        
+                            AddDataUpsert(quoteSymbol, CreateDepthUpsert(JsonSerializer.Deserialize<MarketDepthJSON>(msg), msgSplit[0]));                        
                         else if (msgType == "trade")
-                            AddDataUpsert(quoteSymbol, CreateTradeUpsert(JsonSerializer.Deserialize<MarketTradeMsg>(msg), msgSplit[0]));
+                            AddDataUpsert(quoteSymbol, CreateTradeUpsert(JsonSerializer.Deserialize<MarketTradeJSON>(msg), msgSplit[0]));
                         
                     }
                 } while (!tryDQ);
@@ -85,25 +85,60 @@ namespace BeyonceCapture
 
 
 
-        private static UpdateOneModel<BsonDocument> CreateDepthUpsert(MarketDepthMsg depthJSON, string delta)
+        private static UpdateOneModel<BsonDocument> CreateDepthUpsert(MarketDepthJSON depthJSON, string delta)
         {
+            //FORM ASKS ARRAY
+            var ASKSarray = new BsonArray();
+            var index = 0;
+            foreach (List<object> ask in depthJSON.data.a)
+            {
+                var ASKdoc = new BsonDocument
+                {
+                    { "rate", BsonValue.Create(depthJSON.data.a[index][0]) },
+                    { "qty", BsonValue.Create(depthJSON.data.a[index][0]) }
+                };
+
+                ASKSarray.Add(ASKdoc);
+                index++;
+            }
+
+            //FORM BIDS ARRAY
+            var BIDSarray = new BsonArray();
+            index = 0;
+            foreach (List<object> bid in depthJSON.data.b)
+            {
+                var BIDdoc = new BsonDocument
+                {
+                    { "rate", BsonValue.Create(depthJSON.data.b[index][0]) },
+                    { "qty", BsonValue.Create(depthJSON.data.b[index][0]) }
+                };
+
+                BIDSarray.Add(BIDdoc);
+                index++;
+            }
+
+            //DEFINE DOCUMENT FOR UPSERT
             var BSONdoc = new BsonDocument()
             {
-                //TODO:CREATE DOC DEF
-
-
-
-
+                {"pair", new BsonString(delta)},
+                {"time", BsonValue.Create(depthJSON.data.E)},
+                { "datas", new BsonDocument {
+                    { "depthData", new BsonDocument {
+                        { "asks", ASKSarray },
+                        { "bids", BIDSarray }                        
+                    } }
+                } }
 
             };
             
+            //FILTER UPSERT TO MATCH time AND pair FOR ROOT DOCUMENT
             var filter = Builders<BsonDocument>.Filter.ElemMatch(x => x.Elements, x => x.Name == "time")
                 & Builders<BsonDocument>.Filter.ElemMatch(x => x.Elements, x => x.Name == "pair");
 
             return new UpdateOneModel<BsonDocument>(filter, BSONdoc) { IsUpsert = true };
         }
 
-        private static UpdateOneModel<BsonDocument> CreateTradeUpsert(MarketTradeMsg tradeJSON, string delta)
+        private static UpdateOneModel<BsonDocument> CreateTradeUpsert(MarketTradeJSON tradeJSON, string delta)
         {
             var BSONdoc = new BsonDocument()
             {
