@@ -71,9 +71,9 @@ namespace BeyonceCapture
                         var quoteSymbol = msgSplit[0].Substring(msgSplit[0].Length - 3, 3);
 
                         if (msgType == "depth")
-                            AddDataUpsert(quoteSymbol, CreateDepthBSON(JsonSerializer.Deserialize<MarketDepthMsg>(msg)));                        
+                            AddDataUpsert(quoteSymbol, CreateDepthUpsert(JsonSerializer.Deserialize<MarketDepthMsg>(msg)));                        
                         else if (msgType == "trade")
-                            AddDataUpsert(quoteSymbol, CreateTradeBSON(JsonSerializer.Deserialize<MarketTradeMsg>(msg)));
+                            AddDataUpsert(quoteSymbol, CreateTradeUpsert(JsonSerializer.Deserialize<MarketTradeMsg>(msg)));
                         
                     }
                 } while (!tryDQ);
@@ -85,63 +85,60 @@ namespace BeyonceCapture
 
 
 
-        private static UpdateOneModel<BsonDocument> CreateDepthBSON(MarketDepthMsg depthJSON)
+        private static UpdateOneModel<BsonDocument> CreateDepthUpsert(MarketDepthMsg depthJSON)
         {
-            var filter = Builders<BsonDocument>.Filter.ElemMatch(x => x.Elements, x => x.Name == "time")
-                & Builders<BsonDocument>.Filter.ElemMatch(x => x.Elements, x => x.Name == "pair");
-            var update = new BsonDocument();
-
-            return new UpdateOneModel<BsonDocument>(filter, update)
-            {
-                IsUpsert = true
-            };
-
-        }
-
-        private static UpdateOneModel<BsonDocument> CreateTradeBSON(MarketTradeMsg tradeJSON)
-        {
-            //TODO: GET QUOTE SYMBOL, CREATE DOC DEF
-            var quoteSymbol = "";
             var BSONdoc = new BsonDocument()
             {
+                //TODO: GET QUOTE SYMBOL, CREATE DOC DEF
+
+
+
+
 
             };
+            
+            var filter = Builders<BsonDocument>.Filter.ElemMatch(x => x.Elements, x => x.Name == "time")
+                & Builders<BsonDocument>.Filter.ElemMatch(x => x.Elements, x => x.Name == "pair");
 
+            return new UpdateOneModel<BsonDocument>(filter, BSONdoc) { IsUpsert = true };
+        }
+
+        private static UpdateOneModel<BsonDocument> CreateTradeUpsert(MarketTradeMsg tradeJSON)
+        {
+            var BSONdoc = new BsonDocument()
+            {
+                //TODO: CREATE DOC DEF
+
+
+
+
+
+            };
 
             var filter = Builders<BsonDocument>.Filter.ElemMatch(x => x.Elements, x => x.Name == "time")
                 & Builders<BsonDocument>.Filter.ElemMatch(x => x.Elements, x => x.Name == "pair");
             
-            var update = BSONdoc;
-
-            return new UpdateOneModel<BsonDocument>(filter, update)
-            {
-                IsUpsert = true
-            };
-
+            return new UpdateOneModel<BsonDocument>(filter, BSONdoc) { IsUpsert = true };
         }
         
 
         public static void CreateAddSnapshotDoc(object TODO)
         {
-            //TODO: GET QUOTE SYMBOL, CREATE DOC DEF
-            var quoteSymbol = "";
+            var quoteSymbol = "TODO";
             var BSONdoc = new BsonDocument()
             {
+                //TODO: CREATE DOC DEF
+
+
+
+
 
             };
-
-
+            
             var filter = Builders<BsonDocument>.Filter.ElemMatch(x => x.Elements, x => x.Name == "time")
                 & Builders<BsonDocument>.Filter.ElemMatch(x => x.Elements, x => x.Name == "pair");
             
-            var update = BSONdoc;
-
-            var upsert = new UpdateOneModel<BsonDocument>(filter, update)
-            {
-                IsUpsert = true
-            };
-
-
+            var upsert = new UpdateOneModel<BsonDocument>(filter, BSONdoc) { IsUpsert = true };
             AddDataUpsert(quoteSymbol, upsert);
         }
 
