@@ -21,10 +21,10 @@ namespace BeyonceCapture
         private static IMongoCollection<BsonDocument> ETHpairsCollection;
         private static IMongoCollection<BsonDocument> BNBpairsCollection;
         private static IMongoCollection<BsonDocument> USDTpairsCollection;
-        private static List<BsonDocument> BTCdocuments;
-        private static List<BsonDocument> ETHdocuments;
-        private static List<BsonDocument> BNBdocuments;
-        private static List<BsonDocument> USDTdocuments;
+        private static List<UpdateOneModel<BsonDocument>> BTCupserts;
+        private static List<UpdateOneModel<BsonDocument>> ETHupserts;
+        private static List<UpdateOneModel<BsonDocument>> BNBupserts;
+        private static List<UpdateOneModel<BsonDocument>> USDTupserts;
 
         public static async void StartDataUpdates()
         {
@@ -33,10 +33,10 @@ namespace BeyonceCapture
             BNBpairsCollection = await CheckCreateGetCollection("BNBmarketsTEST");
             USDTpairsCollection = await CheckCreateGetCollection("USDTmarketsTEST");
 
-            BTCdocuments = new List<BsonDocument>();
-            ETHdocuments = new List<BsonDocument>();
-            BNBdocuments = new List<BsonDocument>();
-            USDTdocuments = new List<BsonDocument>();
+            BTCupserts = new List<UpdateOneModel<BsonDocument>>();
+            ETHupserts = new List<UpdateOneModel<BsonDocument>>();
+            BNBupserts = new List<UpdateOneModel<BsonDocument>>();
+            USDTupserts = new List<UpdateOneModel<BsonDocument>>();
 
 
             //Begin Dequeue Thread:
@@ -69,14 +69,12 @@ namespace BeyonceCapture
 
                         var msgType = msgSplit[1].Substring(0, 5);
                         var quoteSymbol = msgSplit[0].Substring(msgSplit[0].Length - 3, 3);
-                        var BSONdocument = new BsonDocument();
 
-                        if (msgType == "depth")                        
-                            BSONdocument = CreateAddDepthBSON(JsonSerializer.Deserialize<MarketDepthMsg>(msg));                        
+                        if (msgType == "depth")
+                            AddDataUpsert(quoteSymbol, CreateDepthBSON(JsonSerializer.Deserialize<MarketDepthMsg>(msg)));                        
                         else if (msgType == "trade")
-                            BSONdocument = CreateAddTradeBSON(JsonSerializer.Deserialize<MarketTradeMsg>(msg));
+                            AddDataUpsert(quoteSymbol, CreateTradeBSON(JsonSerializer.Deserialize<MarketTradeMsg>(msg)));
                         
-                        AddBSONdoc(quoteSymbol, BSONdocument);
                     }
                 } while (!tryDQ);
                 
@@ -85,59 +83,84 @@ namespace BeyonceCapture
         }
         
 
-        private static BsonDocument CreateAddDepthBSON(MarketDepthMsg depthJSON)
+
+
+        private static UpdateOneModel<BsonDocument> CreateDepthBSON(MarketDepthMsg depthJSON)
         {
-            return new BsonDocument()
+            var filter = Builders<BsonDocument>.Filter.ElemMatch(x => x.Elements, x => x.Name == "time")
+                & Builders<BsonDocument>.Filter.ElemMatch(x => x.Elements, x => x.Name == "pair");
+            var update = new BsonDocument();
+
+            return new UpdateOneModel<BsonDocument>(filter, update)
             {
-                //TODO: ID = TIMESTAMP
-                //      TRADE AND DEPTH AND SNAP SCHEMA
-
-
+                IsUpsert = true
             };
 
         }
 
-        private static BsonDocument CreateAddTradeBSON(MarketTradeMsg tradeJSON)
+        private static UpdateOneModel<BsonDocument> CreateTradeBSON(MarketTradeMsg tradeJSON)
         {
-            return new BsonDocument()
+            //TODO: GET QUOTE SYMBOL, CREATE DOC DEF
+            var quoteSymbol = "";
+            var BSONdoc = new BsonDocument()
             {
-                //TODO: ID = TIMESTAMP
-                //      TRADE AND DEPTH AND SNAP SCHEMA
-
 
             };
+
+
+            var filter = Builders<BsonDocument>.Filter.ElemMatch(x => x.Elements, x => x.Name == "time")
+                & Builders<BsonDocument>.Filter.ElemMatch(x => x.Elements, x => x.Name == "pair");
             
+            var update = BSONdoc;
+
+            return new UpdateOneModel<BsonDocument>(filter, update)
+            {
+                IsUpsert = true
+            };
+
         }
         
 
         public static void CreateAddSnapshotDoc(object TODO)
         {
-            //TODO: GET QUOTE SYMBOL, CREATE DOC
+            //TODO: GET QUOTE SYMBOL, CREATE DOC DEF
             var quoteSymbol = "";
-            var BSONdoc = new BsonDocument();
+            var BSONdoc = new BsonDocument()
+            {
+
+            };
 
 
+            var filter = Builders<BsonDocument>.Filter.ElemMatch(x => x.Elements, x => x.Name == "time")
+                & Builders<BsonDocument>.Filter.ElemMatch(x => x.Elements, x => x.Name == "pair");
+            
+            var update = BSONdoc;
+
+            var upsert = new UpdateOneModel<BsonDocument>(filter, update)
+            {
+                IsUpsert = true
+            };
 
 
-            AddBSONdoc(quoteSymbol, BSONdoc);
+            AddDataUpsert(quoteSymbol, upsert);
         }
 
 
-        private static void AddBSONdoc(string symbol, BsonDocument msgBSON)
+        private static void AddDataUpsert(string symbol, UpdateOneModel<BsonDocument> msgBSON)
         {
             switch (symbol)
             {
                 case "btc":
-                    BTCdocuments.Add(msgBSON);
+                    BTCupserts.Add(msgBSON);
                     break;
                 case "eth":
-                    ETHdocuments.Add(msgBSON);
+                    ETHupserts.Add(msgBSON);
                     break;
                 case "bnb":
-                    BNBdocuments.Add(msgBSON);
+                    BNBupserts.Add(msgBSON);
                     break;
                 case "sdt":
-                    USDTdocuments.Add(msgBSON);
+                    USDTupserts.Add(msgBSON);
                     break;
             }
         }
@@ -153,44 +176,49 @@ namespace BeyonceCapture
         
         private static void SendBTCdata(int docCount = 0)
         {
-            if (BTCdocuments.Count > docCount)
-            {
-                BTCpairsCollection.InsertManyAsync(BTCdocuments, new InsertManyOptions() { IsOrdered = false }).Wait();
-                Console.WriteLine($"BTC docs: {BTCdocuments.Count}");
-                BTCdocuments = new List<BsonDocument>();
+            if (BTCupserts.Count > docCount)
+            {   
+                BTCpairsCollection.BulkWriteAsync(BTCupserts, new BulkWriteOptions() { IsOrdered = false }).Wait();
+
+                Console.WriteLine($"BTC docs: {BTCupserts.Count}");
+                BTCupserts = new List<UpdateOneModel<BsonDocument>>();
             }
         }
         private static void SendETHdata(int docCount = 0)
         {
-            if (ETHdocuments.Count > docCount)
+            if (ETHupserts.Count > docCount)
             {
-                ETHpairsCollection.InsertManyAsync(ETHdocuments, new InsertManyOptions() { IsOrdered = false }).Wait();
-                Console.WriteLine($"ETH docs: {ETHdocuments.Count}");
-                ETHdocuments = new List<BsonDocument>();
+                ETHpairsCollection.BulkWriteAsync(BTCupserts, new BulkWriteOptions() { IsOrdered = false }).Wait();
+
+                Console.WriteLine($"ETH docs: {ETHupserts.Count}");
+                ETHupserts = new List<UpdateOneModel<BsonDocument>>();
             }
         }
         private static void SendBNBdata(int docCount = 0)
         {
-            if (BNBdocuments.Count > docCount)
+            if (BNBupserts.Count > docCount)
             {
-                BNBpairsCollection.InsertManyAsync(BNBdocuments, new InsertManyOptions() { IsOrdered = false }).Wait();
-                Console.WriteLine($"BNB docs: {BNBdocuments.Count}");
-                BNBdocuments = new List<BsonDocument>();
+                BNBpairsCollection.BulkWriteAsync(BTCupserts, new BulkWriteOptions() { IsOrdered = false }).Wait();
+
+                Console.WriteLine($"BNB docs: {BNBupserts.Count}");
+                BNBupserts = new List<UpdateOneModel<BsonDocument>>();
             }
         }
         private static void SendUSDTdata(int docCount = 0)
         {
-            if (USDTdocuments.Count > docCount)
+            if (USDTupserts.Count > docCount)
             {
-                USDTpairsCollection.InsertManyAsync(USDTdocuments, new InsertManyOptions() { IsOrdered = false }).Wait();
-                Console.WriteLine($"USDT docs: {USDTdocuments.Count}");
-                USDTdocuments = new List<BsonDocument>();
+                USDTpairsCollection.BulkWriteAsync(BTCupserts, new BulkWriteOptions() { IsOrdered = false }).Wait();
+
+                Console.WriteLine($"USDT docs: {USDTupserts.Count}");
+                USDTupserts = new List<UpdateOneModel<BsonDocument>>();
             }
         }
 
 
         private static async Task<IMongoCollection<BsonDocument>> CheckCreateGetCollection(string quoteSymbol)
         {
+            //CREATES A 'zlib' COMPRESSED COLLECTION, IF DOESNT EXIST
             var symbol = quoteSymbol.ToUpper();
             var filter = new BsonDocument("name", $"{symbol}markets");
             //filter by collection name
