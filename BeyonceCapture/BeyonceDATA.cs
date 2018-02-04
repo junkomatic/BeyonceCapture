@@ -120,10 +120,12 @@ namespace BeyonceCapture
             //DEFINE DOCUMENT FOR UPSERT
             var BSONdoc = new BsonDocument()
             {
-                {"pair", new BsonString(delta)},
                 {"time", BsonValue.Create(depthJSON.data.E)},
+                {"pair", new BsonString(delta)},
                 { "datas", new BsonDocument {
                     { "depthData", new BsonDocument {
+                        {"U", depthJSON.data.U},
+                        {"u",  depthJSON.data.u},
                         { "asks", ASKSarray },
                         { "bids", BIDSarray }                        
                     } }
@@ -143,6 +145,8 @@ namespace BeyonceCapture
             var BSONdoc = new BsonDocument()
             {
                 //TODO: CREATE DOC DEF
+                //THERE MAY BE MANY TRADE EVENTS PER TIMESTAMP
+
 
 
 
