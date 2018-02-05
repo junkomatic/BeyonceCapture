@@ -115,7 +115,7 @@ namespace BeyonceCapture
                 } }
             };
 
-            //FILTER UPSERT TO MATCH time AND pair FOR ROOT DOCUMENT
+            //FILTER UPSERT TO MATCH time AND pair FOR ROOT DOCUMENT  ?? .eq filter?
             var filter = Builders<BsonDocument>.Filter.ElemMatch(x => x.Elements, x => x.Name == "time")
                 & Builders<BsonDocument>.Filter.ElemMatch(x => x.Elements, x => x.Name == "pair");
 
@@ -154,6 +154,7 @@ namespace BeyonceCapture
 
             };
 
+            //?? .eq filter?
             var filter = Builders<BsonDocument>.Filter.ElemMatch(x => x.Elements, x => x.Name == "time")
                 & Builders<BsonDocument>.Filter.ElemMatch(x => x.Elements, x => x.Name == "pair");
 
@@ -172,6 +173,7 @@ namespace BeyonceCapture
 
             };
 
+            //?? .eq filter?
             var filter = Builders<BsonDocument>.Filter.ElemMatch(x => x.Elements, x => x.Name == "pair")
                 & Builders<BsonDocument>.Filter.ElemMatch(x => x.Elements, x => x.Name == "TODO__UPDATE_ID!!");
 
@@ -272,7 +274,7 @@ namespace BeyonceCapture
     }
 
 
-    
+    [BsonIgnoreExtraElements]
     public class MarketDataMessage
     {
         [BsonElement("time")]
