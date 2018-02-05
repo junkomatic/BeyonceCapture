@@ -8,6 +8,7 @@ using MongoDB.Driver;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using Utf8Json;
+using MongoDB.Bson.Serialization.Attributes;
 
 namespace BeyonceCapture
 {
@@ -25,6 +26,7 @@ namespace BeyonceCapture
         private static List<UpdateOneModel<BsonDocument>> ETHupserts;
         private static List<UpdateOneModel<BsonDocument>> BNBupserts;
         private static List<UpdateOneModel<BsonDocument>> USDTupserts;
+        private static Dictionary<string, int> MarketsNonces;
 
         public static async void StartDataUpdates()
         {
@@ -38,6 +40,7 @@ namespace BeyonceCapture
             BNBupserts = new List<UpdateOneModel<BsonDocument>>();
             USDTupserts = new List<UpdateOneModel<BsonDocument>>();
 
+            MarketsNonces = new Dictionary<string, int>();
 
             //Begin Dequeue Thread:
             var DequeueThread = new Thread(() => ProcessQueue());
@@ -47,7 +50,7 @@ namespace BeyonceCapture
         }
 
         public static void ProcessQueue()
-        {            
+        {
             while (true)
             {
                 if (UpdateQueue.IsEmpty)
@@ -57,7 +60,7 @@ namespace BeyonceCapture
                     Thread.Sleep(100);
                     continue;
                 }
-            
+
                 bool tryDQ = false;
                 do
                 {
@@ -68,30 +71,37 @@ namespace BeyonceCapture
                         var msgSplit = msg.Split('@');
                         var msgType = msgSplit[1].Substring(0, 5);
                         var quoteSymbol = msgSplit[0].Substring(msgSplit[0].Length - 3, 3);
-                        
+
                         if (msgType == "depth")
-                            AddDataUpsert(quoteSymbol, CreateDepthUpsert(JsonSerializer.Deserialize<MarketDepthJSON>(msg), msgSplit[0]));                        
+                            AddDataUpsert(quoteSymbol, CreateDepthUpsert(JsonSerializer.Deserialize<MarketDepthJSON>(msg), msgSplit[0]));
                         else if (msgType == "trade")
                             AddDataUpsert(quoteSymbol, CreateTradeUpsert(JsonSerializer.Deserialize<MarketTradeJSON>(msg), msgSplit[0]));
-                        
+
                     }
                 } while (!tryDQ);
-                
+
                 SendAllData(80);
             }
         }
-        
-        
+
+
 
         private static UpdateOneModel<BsonDocument> CreateDepthUpsert(MarketDepthJSON depthJSON, string delta)
         {
-            //TODO: NONCE VALIDATION => IF NONCE OUTOF ORDER, RESNAP BOOK
+            //TODO: NONCE VALIDATION 
+            //    MarketsNonces Dict: UPSERT key==delta :: val==nonce, 
+            //    chuck out early updates,
+            //    IF NONCE +GAPPED, RESNAP BOOK, then CreateAddSnapUpsert()
+
+
 
 
             //FORM UPDATE ARRAYS
-            var ASKSarray = CreateOrdersUpdates(depthJSON.data.a);            
-            var BIDSarray = CreateOrdersUpdates(depthJSON.data.b);
+            var ASKSarray = CreateDepthBSONarray(depthJSON.data.a);
+            var BIDSarray = CreateDepthBSONarray(depthJSON.data.b);
 
+
+            //TODO: rewrite this to use designed BSON class below:::
             //DEFINE DOCUMENT FOR UPSERT
             var BSONdoc = new BsonDocument()
             {
@@ -101,10 +111,10 @@ namespace BeyonceCapture
                     {"U", depthJSON.data.U},
                     {"u",  depthJSON.data.u},
                     { "asks", ASKSarray },
-                    { "bids", BIDSarray }                        
+                    { "bids", BIDSarray }
                 } }
             };
-            
+
             //FILTER UPSERT TO MATCH time AND pair FOR ROOT DOCUMENT
             var filter = Builders<BsonDocument>.Filter.ElemMatch(x => x.Elements, x => x.Name == "time")
                 & Builders<BsonDocument>.Filter.ElemMatch(x => x.Elements, x => x.Name == "pair");
@@ -112,8 +122,9 @@ namespace BeyonceCapture
             return new UpdateOneModel<BsonDocument>(filter, BSONdoc) { IsUpsert = true };
         }
 
-        private static BsonArray CreateOrdersUpdates(List<List<object>> updates)
+        private static BsonArray CreateDepthBSONarray(List<List<object>> updates)
         {
+            //TODO: CREATE THIS USING BSON CLASS BELOW
             var array = new BsonArray();
             foreach (List<object> update in updates)
             {
@@ -133,7 +144,7 @@ namespace BeyonceCapture
         {
             var BSONdoc = new BsonDocument()
             {
-                //TODO: CREATE DOC DEF
+                //TODO: CREATE DOC DEF USING BSON DESIGN BELOW
                 //THERE MAY BE MANY TRADE EVENTS PER TIMESTAMP
                 //USE '.Push' TO EXTEND ARRAY
 
@@ -145,26 +156,25 @@ namespace BeyonceCapture
 
             var filter = Builders<BsonDocument>.Filter.ElemMatch(x => x.Elements, x => x.Name == "time")
                 & Builders<BsonDocument>.Filter.ElemMatch(x => x.Elements, x => x.Name == "pair");
-            
+
             return new UpdateOneModel<BsonDocument>(filter, BSONdoc) { IsUpsert = true };
         }
-        
 
-        public static void CreateAddSnapshotDoc(object TODO, string delta)
+
+        public static void CreateAddSnapshotUpsert(object TODO, string delta)
         {
             var BSONdoc = new BsonDocument()
             {
-                //TODO: CREATE DOC DEF
+                //TODO: CREATE DOC DEF USING BSON DESIGN BELOW
                 //FILTER WILL USE LAST-UPDATE-ID: U/u
-
-
+                //VALIDATE!
 
 
             };
-            
+
             var filter = Builders<BsonDocument>.Filter.ElemMatch(x => x.Elements, x => x.Name == "pair")
                 & Builders<BsonDocument>.Filter.ElemMatch(x => x.Elements, x => x.Name == "TODO__UPDATE_ID!!");
-            
+
             var upsert = new UpdateOneModel<BsonDocument>(filter, BSONdoc) { IsUpsert = true };
             AddDataUpsert(delta.Substring(delta.Length - 3, 3), upsert);
         }
@@ -196,12 +206,12 @@ namespace BeyonceCapture
             SendETHdata(docCount);
             SendBNBdata(docCount);
             SendUSDTdata(docCount);
-        }  
-        
+        }
+
         private static void SendBTCdata(int docCount = 0)
         {
             if (BTCupserts.Count > docCount)
-            {   
+            {
                 BTCpairsCollection.BulkWriteAsync(BTCupserts, new BulkWriteOptions() { IsOrdered = false }).Wait();
 
                 Console.WriteLine($"BTC docs: {BTCupserts.Count}");
@@ -254,12 +264,33 @@ namespace BeyonceCapture
                 db.CreateCollection($"{symbol}markets", options);
             }
 
-            return db.GetCollection<BsonDocument>($"{symbol}markets");            
+            return db.GetCollection<BsonDocument>($"{symbol}markets");
         }
 
 
 
     }
+
+
+    
+    public class MarketDataMessage
+    {
+        [BsonElement("time")]
+        public long Time { get; set; }
+        [BsonElement("pair")]
+        public string Pair { get; set; }
+        [BsonElement("depth"), BsonIgnoreIfNull]
+        public MarketDepthJSON Depth { get; set; }
+        [BsonElement("trades"), BsonIgnoreIfNull]
+        public List<MarketTradeJSON> Trades { get; set; }
+
+        //TODO: MAKE SNAP POCO
+        [BsonElement("snap"), BsonIgnoreIfNull]
+        public object Snapshot { get; set; }
+
+    }
+        
+        
 
     
 }
